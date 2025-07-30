@@ -40,7 +40,7 @@ struct NumProperties {
 /// For a backing storage array size of 3, there will not be any need for allocation
 /// for ~62% of numbers, but the average amount of memory used will be increased by
 /// ~22%
-type FactorMultiset = TinyMap<usize, u32, 3>;
+type FactorMultiset = TinyMap<usize, u8, 3>;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
@@ -107,7 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             basedness,
         });
 
-        // A based number is one which is square-free and is more based than all smaller based numbers
+        // A based number is one which is more based than all smaller numbers
         if basedness > based.last().copied().map_or(0, |(_, basedness)| basedness) {
             based.push((i, basedness));
         }
@@ -116,8 +116,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let num_prime_factors_histogram = num_prime_factors_histogram
         .iter()
         .copied()
+        // Remove histogram bins which are unused
         .take_while(|n| *n > 0)
         .enumerate()
+        // Shift bins by 1
         .map(|(i, n)| (i + 1, n))
         .collect::<Vec<_>>();
 
