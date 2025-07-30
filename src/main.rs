@@ -1,5 +1,6 @@
-use std::{collections::HashMap, error::Error, fmt::Write, path::PathBuf, time::Duration};
+use std::{error::Error, fmt::Write, path::PathBuf, time::Duration};
 
+use based_num::TinyMap;
 use clap::Parser;
 use csv::Writer;
 use indicatif::{ProgressBar, ProgressIterator, ProgressState, ProgressStyle};
@@ -30,16 +31,32 @@ struct NumProperties {
     basedness: u64,
 }
 
+/// A multiset of prime factors. Represented as a map of Prime -> Power.
+/// Backing storage of `TinyMap` ensures that as long as there are 3 or fewer
+/// prime factors for a number (which is true for ~62% of numbers),
+/// this will not need to allocate. To reduce allocations more, increase
+/// the size of the array part of the `TinyMap` - doing this will increase the
+/// amount of memory used for numbers with fewer than that many factors.
+/// For a backing storage array size of 3, there will not be any need for allocation
+/// for ~62% of numbers, but the average amount of memory used will be increased by
+/// ~22%
+type FactorMultiset = TinyMap<usize, u32, 3>;
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     let n = (args.max_num + 1) as usize;
 
     let mut num_properties = vec![None; n];
-    let mut prime_factors = vec![HashMap::new(); n];
+    let mut prime_factors = vec![FactorMultiset::new(); n];
     let mut primes = Vec::new();
     let mut based = Vec::new();
 
     let mut num_prime_factors_histogram = [0; 10];
+
+    println!(
+        "Size of FactorMultiset: {}",
+        std::mem::size_of::<FactorMultiset>()
+    );
 
     num_properties[1] = Some(NumProperties {
         number: 1,
@@ -72,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .or_insert(1);
 
             // Definition of d(n) the divisor function
-            prime_factors[i].values().copied().map(|k| k + 1).product()
+            prime_factors[i].values().copied().map(|k| u64::from(k + 1)).product()
         // Otherwise, i must be a prime
         } else {
             prime_factors[i].insert(i, 1);
