@@ -53,11 +53,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut num_prime_factors_histogram = [0; 10];
 
-    println!(
-        "Size of FactorMultiset: {}",
-        std::mem::size_of::<FactorMultiset>()
-    );
-
     num_properties[1] = Some(NumProperties {
         number: 1,
         num_factors: 1,
